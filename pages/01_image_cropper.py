@@ -1,84 +1,59 @@
-# The library you have to use
-import numpy as np
-
-# Some extra libraries to build the webapp and deal with images and files
 import streamlit as st
-import io
+import numpy as np
 from PIL import Image
+import os
+import matplotlib.pyplot as plt
 
+img_path = "data/starry_night.png"
 
-# ----- Left menu -----
-with st.sidebar:
-    st.image("eae_img.png", width=200)
-    st.write("Interactive Project to open, crop, display and save images using NumPy, PIL and Matplotlib.")
+# Открываем изображение и конвертируем в массив numpy
+with Image.open(img_path) as img:
+    img_arr = np.array(img)
 
+# Отображаем изображение
+plt.imshow(img_arr)
+plt.axis('off')  # Это выключает оси, если не хотите их видеть
+st.image(img_arr)
 
-# ----- Title of the page -----
-st.title("🖼️ Image Cropper")
-st.divider()
+# Ex 1.1: Get the height and width of the image in pixels
 
+# Get the height and width of the image in pixels
+max_height, max_width = img_arr.shape[:2]  # shape[0] is height, shape[1] is width
 
-# ----- Getting the image from the user or using a default one if the user didn't upload any, we get the image as a numpy array called img_arr -----
-is_example = False
-img = st.file_uploader("Upload an image:", type=["png", "jpg", "jpeg"])
+# Print the height and width
+f"Height: {max_height} pixels"
+f"Width: {max_width} pixels"
 
-if img is None:
-    is_example = True
-    with Image.open("data/starry_night.png") as img:
-        img_arr = np.array(img)
+# Ex 1.2: Define the dimensions of the crop, make sure that min is smaller than max and also that min is larger than 0
+# and max is smaller than the size of the image for every dimension. If not, print a message explaining the error.
+
+# Example crop dimensions, modify them to test your code
+crop_min_h = 600
+crop_max_h = 1000
+crop_min_w = 550
+crop_max_w = 1100
+
+# Constraint checks
+
+if not (0 < crop_min_h < crop_max_h < max_height):
+    print(f"Error: Crop height boundaries are invalid. Ensure 0 < min_h < max_h < {max_height}.")
+elif not (0 < crop_min_w < crop_max_w < max_width):
+    print(f"Error: Crop width boundaries are invalid. Ensure 0 < min_w < max_w < {max_width}.")
+elif crop_min_h >= crop_max_h:
+    print("Error: crop_min_h should be smaller than crop_max_h.")
+elif crop_min_w >= crop_max_w:
+    print("Error: crop_min_w should be smaller than crop_max_w.")
 else:
-    with Image.open(img) as img:
-        img_arr = np.array(img)
-
-# Displaying the image
-st.image(img_arr, caption="Original Image" if not is_example else "Original example image", use_container_width=True)
-st.write("#")
+    print("Crop dimensions are valid.")
 
 
-# TODO: Ex. 1.1: Get the minimum and maximum values for the vertical and horizontal ranges, so the size of the img_arr array -----
+# TODO: Develop the code to validate the constraints and print the error message if any constraint is invalid
 
-min_height = 0 
-max_height = None   # TODO: Replace None with the maximum height of the image using np.shape() function
+# Ex 1.3: Generate the crop array into a new variable, use NumPy array slicing
 
-min_width = 0
-max_width = None    # TODO: Replace None with the maximum width of the image using np.shape() function   
-
-
-# ----- Creating the sliders to receive the user input with the dimensions to crop the image ----- 
-if type(max_height) == int and type(max_width) == int:
-    
-    cols1 = st.columns([4, 1, 4])
-
-    # this returns a tuple like (100, 300), for the veritcal range to crop
-    crop_min_h, crop_max_h = cols1[0].slider("Crop Vertical Range", min_height, max_height, (int(max_height*0.1), int(max_height*0.9)))   
-    # this returns a tuple like (100, 300), for the horizontal range to crop
-    crop_min_w, crop_max_w = cols1[2].slider("Crop Horizontal Range", min_width, max_width, (int(max_width*0.1), int(max_width*0.9)))    
-
-
-    st.write("## Cropped Image")
-
-else:
-    st.subheader("⚠️ You still need to develop the Ex 1.1.")
-
-
-# TODO: Ex. 1.3: Crop the image array img_arr using the crop_min_h, crop_max_h, crop_min_w and crop_max_w values -----
-
-crop_arr = None  # TODO: Generate the crop array into a new variable, use NumPy array slicing
-
-
-# ----- Displaying the cropped image and creating a download button to download the image -----
-
-if type(crop_arr) == np.ndarray:
-    st.image(crop_arr, caption="Cropped Image", use_column_width=True)
-
-    buf = io.BytesIO()
-    Image.fromarray(crop_arr).save(buf, format="PNG")
-    cropped_img_bytes = buf.getvalue()
-
-    cols2 = st.columns([4, 1, 4])
-    file_name = cols2[0].text_input("Chose a File Name:", "cropped_image") + ".png"
-
-    st.download_button(f"Download the image `{file_name}`", cropped_img_bytes, file_name=file_name)
-
-else:
-    st.subheader("⚠️ You still need to develop the Ex 1.3.")
+crop_arr = img_arr[crop_min_h:crop_max_h, crop_min_w:crop_max_w]
+crop_img = Image.fromarray(crop_arr)
+plt.imshow(crop_arr)
+st.image(crop_arr)
+file_name = "starry_night_cropped"
+crop_img.save(f"/data/{file_name}.png")

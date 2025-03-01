@@ -1,111 +1,109 @@
-# The libraries you have to use
 import pandas as pd
 import matplotlib.pyplot as plt
-
-# Some extra libraries to build the webapp
 import streamlit as st
 
+# Ex 2.1: Load the data using Pandas read_csv, use `show_id` as the index_col parameter.
 
-# ----- Left menu -----
-with st.sidebar:
-    st.image("eae_img.png", width=200)
-    st.write("Interactive Project to load a dataset with information about Netflix Movies and Series, extract some insights usign Pandas and displaying them with Matplotlib.")
-    st.write("Data extracted from: https://www.kaggle.com/datasets/shivamb/netflix-shows (with some cleaning and modifications)")
+data_path = "data/netflix_titles.csv"
 
+# Load the data into a Pandas DataFrame, using 'show_id' as the index column
+movies_df = pd.read_csv(data_path, index_col="show_id")
 
-# ----- Title of the page -----
-st.title("🎬 Netflix Data Analysis")
-st.divider()
+# Display the DataFrame
+movies_df
 
+# Ex 2.2: What is the min and max release years?
 
-# ----- Loading the dataset -----
+# Ex 2.2: Find the minimum and maximum release years
+min_year = movies_df["release_year"].min()  # Find the minimum release year
+max_year = movies_df["release_year"].max()  # Find the maximum release year
 
-@st.cache_data
-def load_data():
-    data_path = "data/netflix_titles.csv"
+# Print the results
+f"Min year: {min_year}, Max year: {max_year}"
 
-    movies_df = None  # TODO: Ex 2.1: Load the dataset using Pandas, use the data_path variable and set the index column to "show_id"
+# Ex 2.3: Count the number of missing values (NaN) in the 'director' column
+num_missing_directors = movies_df["director"].isna().sum()
 
-    return movies_df   # a Pandas DataFrame
+# Print the result
+f"Number of missing directors: {num_missing_directors}"
+year = 2005
 
+# Step 3: Filter data by the given year
+filtered_df = movies_df[movies_df['release_year'] == year]
 
-movies_df = load_data()
+# Step 4: Handle rows where 'country' column contains multiple countries
+# Split the countries by comma, strip spaces, and flatten the list
+countries_list = filtered_df['country'].dropna().apply(lambda x: [country.strip() for country in x.split(',')]).explode()
 
-# Displaying the dataset in a expandable table
-with st.expander("Check the complete dataset:"):
-    st.dataframe(movies_df)
+# Step 5: Get the number of movies/series for each country
+top_10_countries = countries_list.value_counts().head(10)
 
+# Step 6: Print the result
+f"Top 10 countries: {top_10_countries}"
 
-# ----- Extracting some basic information from the dataset -----
-
-# TODO: Ex 2.2: What is the min and max release years?
-min_year = None
-max_year = None
-
-# TODO: Ex 2.3: How many director names are missing values (NaN)?
-num_missing_directors = None
-
-# TODO: Ex 2.4: How many different countries are there in the data?
-n_countries = None
-
-# TODO: Ex 2.5: How many characters long are on average the title names?
-avg_title_length = None
-
-
-# ----- Displaying the extracted information metrics -----
-
-st.write("##")
-st.header("Basic Information")
-
-cols1 = st.columns(5)
-cols1[0].metric("Min Release Year", min_year)
-cols1[1].metric("Max Release Year", max_year)
-cols1[2].metric("Missing Dir. Names", num_missing_directors)
-cols1[3].metric("Countries", n_countries)
-cols1[4].metric("Avg Title Length", str(round(avg_title_length, 2)) if avg_title_length is not None else None)
+# Step 7: Plot the pie chart
+fig = plt.figure(figsize=(8, 8))
+plt.pie(top_10_countries, labels=top_10_countries.index, autopct="%.2f%%")
+plt.title(f"Top 10 Countries in {year}")
+st.pyplot(fig)
 
 
-# ----- Pie Chart: Top year producer countries -----
+# Step 1: Fill missing values in the 'country' column with "Unknown"
+movies_df["country"] = movies_df["country"].fillna("Unknown")
 
-st.write("##")
-st.header("Top Year Producer Countries")
+# Step 2: Handle multiple countries in a list and join them into a single string
+# First, we need to ensure the countries are in list format and then join them into a single string.
+# If the country column contains lists, we join the elements; otherwise, we keep the value as is.
 
-cols2 = st.columns(2)
-year = cols2[0].number_input("Select a year:", min_year, max_year, 2005)
+def process_countries(countries):
+    if isinstance(countries, str):
+        # If it's a string, just return it
+        return countries
+    elif isinstance(countries, list):
+        # If it's a list, join the elements with ", "
+        return ", ".join(countries)
+    else:
+        return "Unknown"
 
-# TODO: Ex 2.6: For a given year, get the Pandas Series of how many movies and series 
-# combined were made by every country, limit it to the top 10 countries.
-top_10_countries = None
+# Apply the function to the 'country' column
+movies_df["country"] = movies_df["country"].apply(process_countries)
 
-# print(top_10_countries)
-if top_10_countries is not None:
-    fig = plt.figure(figsize=(8, 8))
-    plt.pie(top_10_countries, labels=top_10_countries.index, autopct="%.2f%%")
-    plt.title(f"Top 10 Countries in {year}")
+# Step 3: Split the strings by ", " and get unique countries using a set
+all_countries = movies_df["country"].str.split(", ").explode().unique()
 
-    st.pyplot(fig)
+# Step 4: Count the unique countries
+n_countries = len(all_countries)
 
-else:
-    st.subheader("⚠️ You still need to develop the Ex 2.6.")
+# Print the result
+f"There are {n_countries} different countries in the data"
 
+# Step 1: Create a new column with the length of each title
+movies_df['title_length'] = movies_df['title'].apply(lambda x: len(x))
 
-# ----- Line Chart: Avg duration of movies by year -----
+# Step 2: Calculate the average title length
+avg_title_length = movies_df['title_length'].mean()
 
-st.write("##")
-st.header("Avg Duration of Movies by Year")
+# Print the result
+f"The average title length is {avg_title_length} characters"
 
-# TODO: Ex 2.7: Make a line chart of the average duration of movies (not TV shows) in minutes for every year across all the years. 
-movies_avg_duration_per_year = None
+# Ex 2.7: Line chart of the average duration of movies (not TV shows) for every year
 
-if movies_avg_duration_per_year is not None:
-    fig = plt.figure(figsize=(9, 6))
+# Step 1: Filter out TV shows (assume the 'type' column distinguishes between movies and TV shows)
+movies_df_movies = movies_df[movies_df['type'] == 'Movie']
 
-    # plt.plot(...# TODO: generate the line plot using plt.plot() and the information from movies_avg_duration_per_year (the vertical axes with the minutes value) and its index (the horizontal axes with the years)
+# Step 2: Create a new column for the movie duration in minutes
+# We assume that the 'duration' column has the format "XX min"
+movies_df_movies['duration_minutes'] = movies_df_movies['duration'].apply(lambda x: int(x.split()[0]) if isinstance(x, str) else None)
 
-    plt.title("Average Duration of Movies Across Years")
+# Step 3: Group by year and calculate the average duration for each year
+movies_avg_duration_per_year = movies_df_movies.groupby('release_year')['duration_minutes'].mean()
 
-    st.pyplot(fig)
+# Step 4: Plot the line chart
+fig = plt.figure(figsize=(9, 6))
 
-else:
-    st.subheader("⚠️ You still need to develop the Ex 2.7.")
+plt.plot(movies_avg_duration_per_year.index, movies_avg_duration_per_year, marker='o', linestyle='-', color='b')
+plt.title("Average Duration of Movies Across Years")
+plt.xlabel("Year")
+plt.ylabel("Average Duration (minutes)")
 
+st.pyplot(fig)
